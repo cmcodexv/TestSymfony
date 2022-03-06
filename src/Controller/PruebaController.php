@@ -9,7 +9,7 @@ use MongoDB\Client;
 class PruebaController
 {
     /**
-     * @Route("/")
+     * @Route("/prueba")
      */
 
     public function homepage()
