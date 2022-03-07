@@ -1,54 +1,58 @@
 {% extends 'base.html.twig' %}
- 
-{% block title %}Reports{% endblock %}
-{% block stylesheets %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+{% block title %}Reports
 {% endblock %}
- 
+{% block stylesheets %}
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+{% endblock %}
+
 {% block body %}
-<style>
-    .wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .code { background: #F5F5F5; padding: 2px 6px; }
-</style>
- 
-<div class="wrapper">
-    <h1>Hello {{ controller_name }}! ✅</h1>
-    <!-- {% for u in data %}
-    <li>{{ u.name }}</li>
-    <li>{{ u.lastname }}</li>
-{% endfor %} -->
+	<style>
+		.wrapper {
+			margin: 1em auto;
+			max-width: 800px;
+			width: 95%;
+			font: 18px / 1.5 sans-serif;
+		}
+		.code {
+			background: #F5F5F5;
+			padding: 2px 6px;
+		}
+	</style>
 
-    <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">First</th>
-            <th scope="col">Last</th>
-            <th scope="col">Handle</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">1</th>
-            <td>Mark</td>
-            <td>Otto</td>
-            <td>@mdo</td>
-          </tr>
-          <tr>
-            <th scope="row">2</th>
-            <td>Jacob</td>
-            <td>Thornton</td>
-            <td>@fat</td>
-          </tr>
-          <tr>
-            <th scope="row">3</th>
-            <td>Larry</td>
-            <td>the Bird</td>
-            <td>@twitter</td>
-          </tr>
-        </tbody>
-      </table>
- 
+	<div class="wrapper">
+		<h1>Hello
+			{{ controller_name }}! ✅</h1>
 
-</div>
+
+		<table class="table">
+			<thead>
+				<tr>
+					<th scope="col">Account ID</th>
+					<th scope="col">First</th>
+					<th scope="col">Last</th>
+					<th scope="col">Spend</th>
+					<th scope="col">Impressions</th>
+					<th scope="col">Clicks</th>
+					<th scope="col">Cost per Click</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for u in data %}
+					<tr>
+						<td>{{u._id}}</td>
+						<td>{{u.name}}</td>
+						<td>{{u.lastname}}</td>
+						<td>{{u.spend}}</td>
+						<td>{{u.impressions}}</td>
+						<td>{{u.clicks}}</td>
+						<td>{{u.costPerClick}}</td>
+					</tr>
+				{% endfor %}
+
+			</tbody>
+		</table>
+
+
+	</div>
 {% endblock %}
