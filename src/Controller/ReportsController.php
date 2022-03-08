@@ -4,83 +4,129 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use MongoDB\Client;
-use MongoDB\BSON\Regex;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 
 
 class ReportsController extends AbstractController
 {
     /**
-     * @Route("/reports")
+     * @Route("/reports",name="reports")
      */
-    public function index()
 
+    public function index(Request $request)
     {
-        $conex = new Client('mongodb://localhost:27017');
-        $collection = $conex->cnx->user;
 
-        //agregations
+
+        $conex = new Client('mongodb://localhost:27017');
+        $collection = $conex->demo_db->accounts;
+
+
         $isActive = [
-            '$match' => ['status' => true]
+            '$match' => ['status' => 'ACTIVE']
         ];
 
         $list = [
             '$lookup' => [
-                "from" => "statics",
-                "localField" => "_id",
-                "foreignField" => "userId",
-                "as" => "statics"
+                "from" => "metrics",
+                "localField" => "accountId",
+                "foreignField" => "accountId",
+                "as" => "metrics"
             ]
         ];
 
         $un =  [
-            '$unwind' => '$statics'
-
+            '$unwind' => '$metrics'
         ];
 
         $group =  [
             '$group' => [
                 '_id' => '$accountId',
                 'name' => [
-                    '$first' => '$name'
-                ],
-                'lastname' => [
-                    '$first' => '$lastname'
+                    '$first' => '$accountName'
                 ],
                 'clicks' => [
-                    '$sum' => '$statics.clicks'
+                    '$sum' => '$metrics.clicks'
                 ],
                 'impressions' => [
-                    '$sum' => '$statics.impressions'
+                    '$sum' => '$metrics.impressions'
                 ],
                 'spend' => [
-                    '$sum' => '$statics.spend'
+                    '$sum' => '$metrics.spend'
                 ]
+
             ]
         ];
 
         $add = [
             '$addFields' => [
                 'costPerClick' => [
-                    '$divide' => ['$spend', '$clicks'] 
-                ]     
+                    '$divide' => ['$spend', '$clicks']
+                ]
             ]
         ];
 
-        $sort = [
-            '$sort' => [
-                '_id' => 1
-            ]
-        ];
+        //form search
+        $form = $this->createFormBuilder()
+            ->add(
+                'search',
+                TextType::class,
+                [
+                    "attr" => [
+                        "placeholder" => "Account ID"
+                    ]
+                ]
+            )
+            ->add('get', SubmitType::class, array('label' => 'GET DATA'))
+            ->getForm();
+
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+
+            $filterValue = $form->getData();
+
+            // $filter = [
+            //     '$match' => [
+            //         'accountId' => [
+            //             '$regex' => '/^' . $filterValue["search"] . '/'
+            //         ]
+            //     ]
+            // ];
+            // $isActive = [
+            //     '$match' => ['status' => 'ACTIVE']
+            // ];
+            // $data = $collection->aggregate([$filter])->toArray();
+            // $arrayData = json_decode(json_encode($data));
+            // var_dump($arrayData);
+            // die();
+
+            // $isActive = [
+            //     '$match' => ['status' => 'ACTIVE']
+            // ];
+            // $findFilter = $collection->find([$filter]);
+
+            // return $this->redirectToRoute('reports');
+            return $this->render('reports/index.html.twig', [
+                'controller_name' => 'ReportsController',
+                'form' => $form->createView(),
+            ]);
+        } else {
+            var_dump("tft");
+        }
+
 
         //data
-        $data = $collection->aggregate([$isActive, $list, $un, $group, $add, $sort])->toArray();
-        $arrayData = json_decode(json_encode($data));
+        $data = $collection->aggregate([$isActive, $list, $un, $group, $add])->toArray();
 
         return $this->render('reports/index.html.twig', [
             'controller_name' => 'ReportsController',
-            'data' => $arrayData
+            // 'data' => $arrayData,
+            'form' => $form->createView(),
         ]);
     }
 }
