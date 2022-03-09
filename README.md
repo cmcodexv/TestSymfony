@@ -1,6 +1,6 @@
 # Prueba práctica Symfony + MongoDB | Carlos Maradiaga
 
-Reemplazar el url de la bd en el archivo "services.yaml" dentro de "parameters", los datos de las colecciones se encuentran en la carpeta "db"; si las desea importar directamente los archivos .json se encuentran en la carpeta "DocumentsExported" dentro de app/db.
+Reemplazar el url de la bd por la url a conectarse, la variable se encuentra en el archivo "services.yaml" dentro de "parameters", los datos de las colecciones se encuentran en la carpeta "db"; si las desea importar directamente a mongodb los archivos .json se encuentran en la carpeta "DocumentsExported" dentro de app/db.
 
 Ruta definida para la prueba:
 
