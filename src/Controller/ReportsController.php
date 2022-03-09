@@ -3,12 +3,12 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use MongoDB\Client;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use App\Form\SearchType;
+
 
 
 class ReportsController extends AbstractController
@@ -17,116 +17,122 @@ class ReportsController extends AbstractController
      * @Route("/reports",name="reports")
      */
 
-    public function index(Request $request)
-    {
+    public function index(Request $request,  ParameterBagInterface $params)
+    {   
+        //get url
+        $db_url = $params->get('db_url');
+        $conex = new Client($db_url);
 
+        try {
 
-        $conex = new Client('mongodb://localhost:27017');
-        $collection = $conex->demo_db->accounts;
+            $collection = $conex->demo_db->accounts;
 
+            //stages of aggregation
+            $isActive = [
+                '$match' => ['status' => 'ACTIVE']
+            ];
 
-        $isActive = [
-            '$match' => ['status' => 'ACTIVE']
-        ];
-
-        $list = [
-            '$lookup' => [
-                "from" => "metrics",
-                "localField" => "accountId",
-                "foreignField" => "accountId",
-                "as" => "metrics"
-            ]
-        ];
-
-        $un =  [
-            '$unwind' => '$metrics'
-        ];
-
-        $group =  [
-            '$group' => [
-                '_id' => '$accountId',
-                'name' => [
-                    '$first' => '$accountName'
-                ],
-                'clicks' => [
-                    '$sum' => '$metrics.clicks'
-                ],
-                'impressions' => [
-                    '$sum' => '$metrics.impressions'
-                ],
-                'spend' => [
-                    '$sum' => '$metrics.spend'
+            $list = [
+                '$lookup' => [
+                    "from" => "metrics",
+                    "localField" => "accountId",
+                    "foreignField" => "accountId",
+                    "as" => "metrics"
                 ]
+            ];
 
-            ]
-        ];
+            $un =  [
+                '$unwind' => '$metrics'
+            ];
 
-        $add = [
-            '$addFields' => [
-                'costPerClick' => [
-                    '$divide' => ['$spend', '$clicks']
+            $group =  [
+                '$group' => [
+                    '_id' => '$accountId',
+                    'name' => [
+                        '$first' => '$accountName'
+                    ],
+                    'clicks' => [
+                        '$sum' => '$metrics.clicks'
+                    ],
+                    'impressions' => [
+                        '$sum' => '$metrics.impressions'
+                    ],
+                    'spend' => [
+                        '$sum' => '$metrics.spend'
+                    ]
+
                 ]
-            ]
-        ];
+            ];
 
-        //form search
-        $form = $this->createFormBuilder()
-            ->add(
-                'search',
-                TextType::class,
-                [
-                    "attr" => [
-                        "placeholder" => "Account ID"
+            $add = [
+                '$addFields' => [
+                    'costPerClick' => [
+                        '$divide' => ['$spend', '$clicks']
                     ]
                 ]
-            )
-            ->add('get', SubmitType::class, array('label' => 'GET DATA'))
-            ->getForm();
+            ];
 
+            //form search
+            $form = $this->createForm(SearchType::class);
+            $form->handleRequest($request);
 
-        $form->handleRequest($request);
+            //submit form
+            if ($form->isSubmitted()) {
 
-        if ($form->isSubmitted()) {
+                /** @var ClickableInterface $buttonSearch  */
+                $buttonSearch = $form->get("searchBtn");
 
-            $filterValue = $form->getData();
+                //button search
+                if ($buttonSearch->isClicked()) {
 
-            // $filter = [
-            //     '$match' => [
-            //         'accountId' => [
-            //             '$regex' => '/^' . $filterValue["search"] . '/'
-            //         ]
-            //     ]
-            // ];
-            // $isActive = [
-            //     '$match' => ['status' => 'ACTIVE']
-            // ];
-            // $data = $collection->aggregate([$filter])->toArray();
-            // $arrayData = json_decode(json_encode($data));
-            // var_dump($arrayData);
-            // die();
+                    $filterValue = $form->get('search')->getData();
 
-            // $isActive = [
-            //     '$match' => ['status' => 'ACTIVE']
-            // ];
-            // $findFilter = $collection->find([$filter]);
+                    $filterInput = [
+                        '$match' => ['_id' => ''  . $filterValue . '']
+                    ];
 
-            // return $this->redirectToRoute('reports');
-            return $this->render('reports/index.html.twig', [
-                'controller_name' => 'ReportsController',
-                'form' => $form->createView(),
-            ]);
-        } else {
-            var_dump("tft");
+                    //data filtered
+                    $data = $collection->aggregate([$isActive, $list, $un, $group, $filterInput, $add])->toArray();
+                    $arrayData = json_decode(json_encode($data));
+
+                    // reset form
+                    $form = $this->createForm(SearchType::class);
+
+                    return $this->render('reports/index.html.twig', [
+                        'controller_name' => 'ReportsController',
+                        'data' => $arrayData,
+                        'form' => $form->createView()
+                    ]);
+                } else {
+
+                    // all data
+                    $data = $collection->aggregate([$isActive, $list, $un, $group, $add])->toArray();
+                    $arrayData = json_decode(json_encode($data));
+
+                    // reset form
+                    $form = $this->createForm(SearchType::class);
+
+                    return $this->render('reports/index.html.twig', [
+                        'controller_name' => 'ReportsController',
+                        'data' => $arrayData,
+                        'form' => $form->createView()
+                    ]);
+                }
+            } else {
+
+                //all data
+                $data = $collection->aggregate([$isActive, $list, $un, $group, $add])->toArray();
+                $arrayData = json_decode(json_encode($data));
+
+                return $this->render('reports/index.html.twig', [
+                    'controller_name' => 'ReportsController',
+                    'data' => $arrayData,
+                    'form' => $form->createView()
+                ]);
+            }
+        } catch (\Exception $e) {
+            echo nl2br("Unable to connect to Database at the moment! \n Error:'.$e.");
+            exit();
         }
-
-
-        //data
-        $data = $collection->aggregate([$isActive, $list, $un, $group, $add])->toArray();
-
-        return $this->render('reports/index.html.twig', [
-            'controller_name' => 'ReportsController',
-            // 'data' => $arrayData,
-            'form' => $form->createView(),
-        ]);
     }
 }
